@@ -3,165 +3,331 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>☁️ 云端个人成长规划</title>
-    <!-- 引入 Tailwind CSS 美化界面 -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>🌱 个人成长记录 (云端版)</title>
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .loader { border-top-color: #4f46e5; -webkit-animation: spinner 1.5s linear infinite; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        :root {
+            --primary: #4f46e5;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --border: #e5e7eb;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container { max-width: 1000px; margin: 0 auto; }
+        header { text-align: center; margin-bottom: 30px; }
+        h1 { color: var(--primary); margin-bottom: 5px; }
+        .subtitle { color: #6b7280; font-size: 0.9em; }
+
+        /* 配置面板样式 */
+        #config-panel {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none; /* 默认隐藏，有配置则不显示 */
+        }
+        #config-panel input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        #config-panel button {
+            background: #d97706;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: #e0e7ff;
+            color: var(--primary);
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        .section {
+            display: none;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .section.active { display: block; }
+
+        .input-group { margin-bottom: 15px; display: flex; gap: 10px; flex-wrap: wrap; }
+        input, select, textarea {
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            flex: 1;
+            font-size: 14px;
+        }
+        textarea { width: 100%; height: 100px; resize: vertical; }
+
+        button.action-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        button.action-btn:disabled { background: #ccc; cursor: not-allowed; }
+        button.action-btn:hover:not(:disabled) { opacity: 0.9; }
+        
+        button.delete-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .item-list { list-style: none; padding: 0; margin-top: 20px; }
+        .item-card {
+            border: 1px solid var(--border);
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .item-content { flex: 1; }
+        .item-date { font-size: 0.85em; color: #6b7280; margin-bottom: 5px; }
+        .item-title { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; }
+        .item-text { color: #4b5563; white-space: pre-wrap; }
+        
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            margin-right: 5px;
+            background: #e0e7ff;
+            color: var(--primary);
+        }
+
+        .link-btn {
+            display: inline-block;
+            margin-top: 8px;
+            text-decoration: none;
+            color: var(--primary);
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .data-controls {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            text-align: right;
+        }
+        .secondary-btn {
+            background: #9ca3af;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        #loading {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.8);
+            display: none; justify-content: center; align-items: center; z-index: 999;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3; border-top: 4px solid var(--primary);
+            border-radius: 50%; width: 40px; height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        @media (max-width: 600px) {
+            .input-group { flex-direction: column; }
+            .item-card { flex-direction: column; }
+            .item-actions { margin-top: 10px; align-self: flex-end; }
+        }
     </style>
 </head>
-<body class="text-gray-800">
+<body>
 
-<div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-    <header class="mb-8 text-center">
-        <h1 class="text-3xl font-bold text-indigo-600">☁️ 云端个人成长规划</h1>
-        <p class="text-gray-500 mt-2">数据同步至 Notion · 随时随地访问</p>
+<div id="loading"><div class="spinner"></div></div>
+
+<div class="container">
+    <!-- 配置面板 (首次使用显示) -->
+    <div id="config-panel">
+        <h3 style="margin-top:0">⚙️ 云端配置 (仅需一次)</h3>
+        <p style="font-size:0.9em; color:#666;">请输入 Notion Token 和 Database ID 以启用云端同步。</p>
+        <input type="password" id="cfg-token" placeholder="Secret Token (secret_...)">
+        <input type="text" id="cfg-db" placeholder="Database ID">
+        <button onclick="saveConfig()">💾 保存并连接云端</button>
+        <p style="font-size:0.8em; color:#999; margin-top:10px;">提示：配置信息仅保存在您当前浏览器的 LocalStorage 中，用于连接您的 Notion。</p>
+    </div>
+
+    <header>
+        <h1>🌱 个人成长记录</h1>
+        <div class="subtitle">云端同步版 · 日规划 · 资源库</div>
+        <div id="status-indicator" style="font-size:0.8em; color:green; display:none;">✅ 已连接云端</div>
     </header>
 
-    <!-- 配置区域 (首次使用需填写) -->
-    <div id="config-panel" class="bg-white p-6 rounded-lg shadow-md mb-6 border-l-4 border-yellow-400">
-        <h2 class="text-lg font-semibold mb-4">⚙️ 初始配置 (仅需设置一次)</h2>
-        <p class="text-sm text-gray-600 mb-4">请输入您的 Notion 信息，数据将保存在您的浏览器缓存中以便下次自动登录。</p>
-        <div class="space-y-3">
-            <input type="password" id="notion-token" placeholder="Notion Internal Integration Token (secret_...)" class="w-full p-2 border rounded">
-            <input type="text" id="notion-db-id" placeholder="Database ID (32位字符)" class="w-full p-2 border rounded">
-            <button onclick="saveConfig()" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">🔒 保存配置并开始</button>
-        </div>
-        <p class="text-xs text-gray-400 mt-2">提示：Token 和 DB ID 仅存储在您的浏览器本地，不会上传到任何第三方服务器。</p>
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('daily')">📅 日规划</button>
+        <button class="tab-btn" onclick="switchTab('resources')">📚 资源库</button>
+        <button class="tab-btn" onclick="switchTab('settings')">⚙️ 设置</button>
     </div>
 
-    <!-- 主界面 (配置后显示) -->
-    <div id="app-interface" class="hidden">
-        <!-- 标签页 -->
-        <div class="flex space-x-2 mb-6 overflow-x-auto">
-            <button onclick="switchTab('daily')" class="tab-btn px-4 py-2 bg-indigo-600 text-white rounded-full text-sm font-medium">📅 日规划</button>
-            <button onclick="switchTab('resource')" class="tab-btn px-4 py-2 bg-white text-gray-600 rounded-full text-sm font-medium hover:bg-gray-100">📚 资源库</button>
+    <!-- 日规划模块 -->
+    <div id="daily" class="section active">
+        <h2>今日规划与复盘</h2>
+        <div class="input-group">
+            <input type="date" id="planDate">
         </div>
-
-        <!-- 日规划模块 -->
-        <div id="tab-daily" class="block">
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 class="font-bold text-lg mb-4">添加/更新今日规划</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <input type="date" id="plan-date" class="p-2 border rounded">
-                    <input type="text" id="plan-title" placeholder="标题 (例如：2026-02-28 复盘)" class="p-2 border rounded">
-                </div>
-                <textarea id="plan-content" placeholder="今天完成了什么？明天计划做什么？..." class="w-full p-2 border rounded h-32 mb-4"></textarea>
-                <button onclick="addEntry('DailyPlan')" id="btn-save-plan" class="bg-indigo-600 text-white px-6 py-2 rounded hover:bg-indigo-700 flex items-center justify-center">
-                    <span>💾 保存至 Notion</span>
-                </button>
-            </div>
-            
-            <h3 class="font-bold text-lg mb-4">历史记录</h3>
-            <div id="daily-list" class="space-y-4"><!-- 列表将在这里渲染 --></div>
+        <div class="input-group">
+            <textarea id="planContent" placeholder="今天的目标是什么？晚上复盘完成了哪些？..."></textarea>
         </div>
+        <button class="action-btn" onclick="addDailyPlan()" id="btn-save-plan">💾 保存今日记录</button>
 
-        <!-- 资源库模块 -->
-        <div id="tab-resource" class="hidden">
-            <div class="bg-white p-6 rounded-lg shadow-md mb-6">
-                <h3 class="font-bold text-lg mb-4">添加新资源</h3>
-                <input type="text" id="res-title" placeholder="资源名称 (例如：Qwen3.5 技术报告.pdf)" class="w-full p-2 border rounded mb-4">
-                <input type="url" id="res-url" placeholder="链接 (例如：阿里云盘分享链接)" class="w-full p-2 border rounded mb-4">
-                <select id="res-tag" class="w-full p-2 border rounded mb-4">
-                    <option value="PPT">📊 PPT 演示</option>
-                    <option value="PDF">📄 PDF 文档</option>
-                    <option value="Video">🎬 视频链接</option>
-                    <option value="Link">🔗 其他链接</option>
-                </select>
-                <textarea id="res-note" placeholder="备注说明" class="w-full p-2 border rounded h-20 mb-4"></textarea>
-                <button onclick="addEntry('Resource')" id="btn-save-res" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 flex items-center justify-center">
-                    <span>➕ 添加资源</span>
-                </button>
-            </div>
-
-            <h3 class="font-bold text-lg mb-4">我的资源库</h3>
-            <div id="resource-list" class="space-y-4"><!-- 列表将在这里渲染 --></div>
+        <div style="margin-top: 20px; display:flex; justify-content:space-between; align-items:center;">
+            <h3>历史记录</h3>
+            <input type="text" id="searchPlan" placeholder="搜索关键词..." onkeyup="renderDailyPlans()" style="max-width: 200px;">
         </div>
+        <ul id="dailyList" class="item-list"></ul>
+    </div>
+
+    <!-- 资源库模块 -->
+    <div id="resources" class="section">
+        <h2>添加新资源</h2>
+        <div class="input-group">
+            <input type="text" id="resTitle" placeholder="资源名称 (如：2026战略PPT)">
+            <select id="resType">
+                <option value="Video">🎬 视频链接</option>
+                <option value="PDF">📄 PDF/文档</option>
+                <option value="PPT">📊 PPT/演示</option>
+                <option value="Link">🔗 其他链接</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <input type="url" id="resUrl" placeholder="粘贴链接 (建议先上传到网盘再贴链接)">
+        </div>
+        <div class="input-group">
+            <textarea id="resNote" placeholder="备注说明 (可选)" style="height: 60px;"></textarea>
+        </div>
+        <button class="action-btn" onclick="addResource()" id="btn-save-res">➕ 添加资源</button>
+
+        <h3>我的资源库</h3>
+        <ul id="resourceList" class="item-list"></ul>
+    </div>
+
+    <!-- 设置模块 -->
+    <div id="settings" class="section">
+        <h2>数据存储与维护</h2>
+        <p>当前模式：<strong>☁️ Notion 云端同步</strong></p>
+        <p>所有数据实时保存在您的 Notion 数据库中。更换设备只需重新输入配置即可同步数据。</p>
         
-        <div class="mt-8 text-center">
-             <button onclick="clearConfig()" class="text-xs text-red-400 underline">清除配置信息</button>
+        <div class="data-controls">
+            <button class="secondary-btn" onclick="clearConfig()">🔄 重置配置 (清除 Token)</button>
+            <a href="https://notion.so" target="_blank" class="secondary-btn" style="text-decoration:none; display:inline-block;">前往 Notion 查看数据</a>
         </div>
-    </div>
-    
-    <!-- 加载动画 -->
-    <div id="loading" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
-        <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
     </div>
 </div>
 
 <script>
-    // --- 核心逻辑 ---
-    let TOKEN = '';
-    let DB_ID = '';
-
-    // 初始化检查
+    // --- 全局变量 ---
+    let NOTION_TOKEN = '';
+    let NOTION_DB_ID = '';
+    
+    // 初始化
     window.onload = function() {
-        const savedToken = localStorage.getItem('notion_token');
-        const savedDb = localStorage.getItem('notion_db_id');
-        if (savedToken && savedDb) {
-            TOKEN = savedToken;
-            DB_ID = savedDb;
-            document.getElementById('config-panel').classList.add('hidden');
-            document.getElementById('app-interface').classList.remove('hidden');
-            document.getElementById('plan-date').valueAsDate = new Date();
-            fetchData();
-        }
+        document.getElementById('planDate').valueAsDate = new Date();
+        checkConfig();
     };
 
+    function showLoading(show) {
+        document.getElementById('loading').style.display = show ? 'flex' : 'none';
+        const btns = document.querySelectorAll('.action-btn');
+        btns.forEach(b => b.disabled = show);
+    }
+
+    // --- 配置管理 ---
+    function checkConfig() {
+        const t = localStorage.getItem('notion_token');
+        const d = localStorage.getItem('notion_db_id');
+        if (t && d) {
+            NOTION_TOKEN = t;
+            NOTION_DB_ID = d;
+            document.getElementById('config-panel').style.display = 'none';
+            document.getElementById('status-indicator').style.display = 'block';
+            fetchData(); // 加载数据
+        } else {
+            document.getElementById('config-panel').style.display = 'block';
+        }
+    }
+
     function saveConfig() {
-        const t = document.getElementById('notion-token').value.trim();
-        const d = document.getElementById('notion-db-id').value.trim();
-        if (!t || !d) return alert('请填写完整信息');
+        const t = document.getElementById('cfg-token').value.trim();
+        const d = document.getElementById('cfg-db').value.trim();
+        if (!t || !d) return alert('请填写完整的 Token 和 Database ID');
         
-        TOKEN = t;
-        DB_ID = d;
-        localStorage.setItem('notion_token', TOKEN);
-        localStorage.setItem('notion_db_id', DB_ID);
+        NOTION_TOKEN = t;
+        NOTION_DB_ID = d;
+        localStorage.setItem('notion_token', t);
+        localStorage.setItem('notion_db_id', d);
         
-        document.getElementById('config-panel').classList.add('hidden');
-        document.getElementById('app-interface').classList.remove('hidden');
-        document.getElementById('plan-date').valueAsDate = new Date();
-        fetchData();
+        checkConfig();
     }
 
     function clearConfig() {
-        if(confirm('确定清除配置吗？您需要重新输入 Token。')) {
+        if(confirm('确定要清除配置吗？清除后数据将无法同步，需重新输入。')) {
             localStorage.removeItem('notion_token');
             localStorage.removeItem('notion_db_id');
             location.reload();
         }
     }
 
-    function switchTab(tab) {
-        document.getElementById('tab-daily').classList.add('hidden');
-        document.getElementById('tab-resource').classList.add('hidden');
-        document.querySelectorAll('.tab-btn').forEach(b => {
-            b.classList.remove('bg-indigo-600', 'text-white');
-            b.classList.add('bg-white', 'text-gray-600');
-        });
-        
-        if (tab === 'daily') {
-            document.getElementById('tab-daily').classList.remove('hidden');
-            event.target.classList.remove('bg-white', 'text-gray-600');
-            event.target.classList.add('bg-indigo-600', 'text-white');
-        } else {
-            document.getElementById('tab-resource').classList.remove('hidden');
-            event.target.classList.remove('bg-white', 'text-gray-600');
-            event.target.classList.add('bg-indigo-600', 'text-white');
-        }
-    }
-
-    // --- Notion API 交互 ---
+    // --- Notion API 交互核心 ---
     
     async function fetchData() {
         showLoading(true);
         try {
-            const response = await fetch(`https://api.notion.com/v1/databases/${DB_ID}/query`, {
+            const res = await fetch(`https://api.notion.com/v1/databases/${NOTION_DB_ID}/query`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${TOKEN}`,
+                    'Authorization': `Bearer ${NOTION_TOKEN}`,
                     'Notion-Version': '2022-06-28',
                     'Content-Type': 'application/json'
                 },
@@ -169,143 +335,49 @@
                     sorts: [{ timestamp: "created_time", direction: "descending" }]
                 })
             });
-
-            if (!response.ok) throw new Error('Notion API 请求失败，请检查 Token 和 数据库权限');
-            const data = await response.json();
             
-            renderData(data.results);
-        } catch (error) {
-            alert('错误：' + error.message);
-            console.error(error);
+            if (!res.ok) throw new Error('连接失败，请检查 Token 或数据库权限');
+            const data = await res.json();
+            renderAll(data.results);
+        } catch (e) {
+            alert('数据加载失败: ' + e.message);
         } finally {
             showLoading(false);
         }
     }
 
-    function renderData(items) {
-        const dailyList = document.getElementById('daily-list');
-        const resList = document.getElementById('resource-list');
-        dailyList.innerHTML = '';
-        resList.innerHTML = '';
-
-        items.forEach(item => {
-            const props = item.properties;
-            const type = props.Type?.select?.name;
-            const title = props.Name?.title[0]?.plain_text || '无标题';
-            const date = props.Date?.date?.start || '未指定日期';
-            const content = props.Content?.rich_text[0]?.plain_text || '';
-            const url = props.URL?.url;
-            const tags = props.Tags?.multi_select?.map(t => t.name).join(', ') || '';
-
-            if (type === 'DailyPlan') {
-                const card = `
-                    <div class="bg-white p-4 rounded shadow border-l-4 border-indigo-500">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <span class="text-xs text-gray-400">${date}</span>
-                                <h4 class="font-bold text-lg">${title}</h4>
-                                <p class="text-gray-600 mt-2 whitespace-pre-wrap">${content}</p>
-                            </div>
-                            <button onclick="deleteItem('${item.id}')" class="text-red-400 hover:text-red-600 text-sm">删除</button>
-                        </div>
-                    </div>
-                `;
-                dailyList.innerHTML += card;
-            } else if (type === 'Resource') {
-                const tagColor = tags.includes('PPT') ? 'bg-yellow-100 text-yellow-800' : 
-                                 tags.includes('PDF') ? 'bg-red-100 text-red-800' : 
-                                 tags.includes('Video') ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800';
-                
-                const card = `
-                    <div class="bg-white p-4 rounded shadow border-l-4 border-green-500 flex justify-between items-center">
-                        <div>
-                            <div class="flex items-center gap-2 mb-1">
-                                <span class="px-2 py-0.5 rounded text-xs font-bold ${tagColor}">${tags || 'Resource'}</span>
-                                <h4 class="font-bold text-lg">${title}</h4>
-                            </div>
-                            ${url ? `<a href="${url}" target="_blank" class="text-indigo-600 underline text-sm">🔗 访问链接</a>` : ''}
-                            ${content ? `<p class="text-gray-500 text-sm mt-1">${content}</p>` : ''}
-                        </div>
-                        <button onclick="deleteItem('${item.id}')" class="text-red-400 hover:text-red-600 text-sm ml-4">删除</button>
-                    </div>
-                `;
-                resList.innerHTML += card;
-            }
-        });
-    }
-
-    async function addEntry(type) {
+    async function createPage(properties) {
         showLoading(true);
-        let payload = {
-            parent: { database_id: DB_ID },
-            properties: {
-                "Type": { select: { name: type } }
-            }
-        };
-
-        if (type === 'DailyPlan') {
-            const date = document.getElementById('plan-date').value;
-            const title = document.getElementById('plan-title').value || date;
-            const content = document.getElementById('plan-content').value;
-            
-            if (!date) return alert('请选择日期');
-            
-            payload.properties["Name"] = { title: [{ text: { content: title } }] };
-            payload.properties["Date"] = { date: { start: date } };
-            payload.properties["Content"] = { rich_text: [{ text: { content: content } }] };
-        } else {
-            const title = document.getElementById('res-title').value;
-            const url = document.getElementById('res-url').value;
-            const note = document.getElementById('res-note').value;
-            const tag = document.getElementById('res-tag').value;
-
-            if (!title) return alert('请填写资源名称');
-
-            payload.properties["Name"] = { title: [{ text: { content: title } }] };
-            if (url) payload.properties["URL"] = { url: url };
-            if (note) payload.properties["Content"] = { rich_text: [{ text: { content: note } }] };
-            if (tag) payload.properties["Tags"] = { multi_select: [{ name: tag }] };
-        }
-
         try {
-            const response = await fetch('https://api.notion.com/v1/pages', {
+            const res = await fetch('https://api.notion.com/v1/pages', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${TOKEN}`,
+                    'Authorization': `Bearer ${NOTION_TOKEN}`,
                     'Notion-Version': '2022-06-28',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    parent: { database_id: NOTION_DB_ID },
+                    properties: properties
+                })
             });
-
-            if (!response.ok) throw new Error('添加失败');
-            
-            alert('保存成功！');
-            // 清空输入
-            if(type === 'DailyPlan') {
-                document.getElementById('plan-content').value = '';
-                document.getElementById('plan-title').value = '';
-            } else {
-                document.getElementById('res-title').value = '';
-                document.getElementById('res-url').value = '';
-                document.getElementById('res-note').value = '';
-            }
+            if (!res.ok) throw new Error('保存失败');
             fetchData(); // 刷新列表
-        } catch (error) {
-            alert('出错啦：' + error.message);
+        } catch (e) {
+            alert('操作失败: ' + e.message);
         } finally {
             showLoading(false);
         }
     }
 
-    async function deleteItem(id) {
-        if(!confirm('确定删除这条记录吗？')) return;
+    async function deletePage(pageId) {
+        if(!confirm('确定删除吗？')) return;
         showLoading(true);
         try {
-            await fetch(`https://api.notion.com/v1/blocks/${id}`, {
+            await fetch(`https://api.notion.com/v1/blocks/${pageId}`, {
                 method: 'DELETE',
                 headers: {
-                    'Authorization': `Bearer ${TOKEN}`,
+                    'Authorization': `Bearer ${NOTION_TOKEN}`,
                     'Notion-Version': '2022-06-28'
                 }
             });
@@ -317,17 +389,130 @@
         }
     }
 
-    function showLoading(show) {
-        const el = document.getElementById('loading');
-        const btns = document.querySelectorAll('button');
-        if (show) {
-            el.classList.remove('hidden');
-            btns.forEach(b => b.disabled = true);
-        } else {
-            el.classList.add('hidden');
-            btns.forEach(b => b.disabled = false);
-        }
+    // --- 业务逻辑渲染 ---
+
+    function renderAll(items) {
+        renderDailyPlans(items);
+        renderResources(items);
+    }
+
+    function renderDailyPlans(items) {
+        const list = document.getElementById('dailyList');
+        const search = document.getElementById('searchPlan').value.toLowerCase();
+        list.innerHTML = '';
+        
+        // 过滤出日规划类型
+        const plans = items.filter(i => i.properties.Type?.select?.name === 'DailyPlan');
+        
+        const filtered = plans.filter(p => {
+            const title = p.properties.Name?.title[0]?.plain_text || '';
+            const content = p.properties.Content?.rich_text[0]?.plain_text || '';
+            const date = p.properties.Date?.date?.start || '';
+            return title.toLowerCase().includes(search) || content.toLowerCase().includes(search) || date.includes(search);
+        });
+
+        filtered.forEach(p => {
+            const title = p.properties.Name?.title[0]?.plain_text || '无标题';
+            const date = p.properties.Date?.date?.start || '未知日期';
+            const content = p.properties.Content?.rich_text[0]?.plain_text || '';
+            
+            const li = document.createElement('li');
+            li.className = 'item-card';
+            li.innerHTML = `
+                <div class="item-content">
+                    <div class="item-date">📅 ${date}</div>
+                    <div class="item-title">${title}</div>
+                    <div class="item-text">${content}</div>
+                </div>
+                <div class="item-actions">
+                    <button class="delete-btn" onclick="deletePage('${p.id}')">删除</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    function renderResources(items) {
+        const list = document.getElementById('resourceList');
+        list.innerHTML = '';
+        
+        const resources = items.filter(i => i.properties.Type?.select?.name === 'Resource');
+        const typeMap = { 'Video': '🎬 视频', 'PDF': '📄 文档', 'PPT': '📊 PPT', 'Link': '🔗 链接' };
+        const colorMap = { 'Video': '#e0e7ff', 'PDF': '#fce7f3', 'PPT': '#fef3c7', 'Link': '#f3f4f6' };
+
+        resources.forEach(r => {
+            const title = r.properties.Name?.title[0]?.plain_text || '无标题';
+            const type = r.properties.Type?.select?.name;
+            const url = r.properties.URL?.url;
+            const note = r.properties.Content?.rich_text[0]?.plain_text || '';
+            
+            const li = document.createElement('li');
+            li.className = 'item-card';
+            li.innerHTML = `
+                <div class="item-content">
+                    <div class="item-title">
+                        <span class="tag" style="background:${colorMap[type] || '#eee'}">${typeMap[type] || type}</span>
+                        ${title}
+                    </div>
+                    <div class="item-text" style="font-size:0.9em">${note}</div>
+                    ${url ? `<a href="${url}" target="_blank" class="link-btn">🔗 访问资源 &rarr;</a>` : ''}
+                </div>
+                <div class="item-actions">
+                    <button class="delete-btn" onclick="deletePage('${r.id}')">删除</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    }
+
+    // --- 用户操作 ---
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    function addDailyPlan() {
+        const date = document.getElementById('planDate').value;
+        const content = document.getElementById('planContent').value;
+        if (!date || !content) return alert("请填写日期和内容");
+
+        const properties = {
+            "Name": { title: [{ text: { content: `规划：${date}` } }] },
+            "Type": { select: { name: "DailyPlan" } },
+            "Date": { date: { start: date } },
+            "Content": { rich_text: [{ text: { content: content } }] }
+        };
+        
+        createPage(properties);
+        document.getElementById('planContent').value = '';
+    }
+
+    function addResource() {
+        const title = document.getElementById('resTitle').value;
+        const type = document.getElementById('resType').value;
+        const url = document.getElementById('resUrl').value;
+        const note = document.getElementById('resNote').value;
+
+        if (!title || !url) return alert("请填写名称和链接");
+
+        const properties = {
+            "Name": { title: [{ text: { content: title } }] },
+            "Type": { select: { name: "Resource" } },
+            "URL": { url: url },
+            "Tags": { multi_select: [{ name: type }] }, // 利用 Tags 存类型
+            "Content": { rich_text: [{ text: { content: note || '' } }] }
+        };
+        
+        createPage(properties);
+        document.getElementById('resTitle').value = '';
+        document.getElementById('resUrl').value = '';
+        document.getElementById('resNote').value = '';
+        alert("添加成功！");
     }
 </script>
+
 </body>
 </html>
