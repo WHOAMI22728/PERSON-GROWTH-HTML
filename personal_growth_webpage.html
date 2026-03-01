@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>个人成长记录系统 | Personal Growth Record</title>
+<!-- External Libraries (CDN) -->
+<script src="https://image.uc.cn/s/uae/g/3n/mos-production/0915/3.4.17.js"></script>
+<script src="https://image.uc.cn/s/uae/g/3n/mos-production/fontawesome-free-7.1.0-web/js/all.min.js"></script>
+<link href="https://image.uc.cn/s/uae/g/3n/mos-production/fontawesome-free-7.1.0-web/css/fontawesome.min.css" rel="stylesheet"/>
+<script src="https://image.uc.cn/s/uae/g/3n/mos-production/cdn-staticfile-net/axios/1.6.7/axios.min.js"></script>
+<!-- Custom Styles -->
+<style>
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Transitions */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Calendar Styles */
+        .calendar-day {
+            min-height: 80px;
+            transition: all 0.2s;
+        }
+        .calendar-day:hover {
+            background-color: #f8fafc;
+            transform: scale(1.02);
+            z-index: 10;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .toast {
+            min-width: 300px;
+            padding: 16px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out;
+        }
+        .toast.success { border-color: #22c55e; }
+        .toast.error { border-color: #ef4444; }
+        .toast.info { border-color: #3b82f6; }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Checkbox Customization */
+        .custom-checkbox input:checked + div {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        .custom-checkbox input:checked + div svg {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans h-screen flex overflow-hidden">
+<!-- Toast Container -->
+<div id="toast-container"></div>
+<!-- Sidebar Navigation -->
+<aside class="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20">
+<div class="p-6 border-b border-slate-100">
+<h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+<i class="fa-solid fa-seedling text-green-500"></i>
+                成长记录
+            </h1>
+<p class="text-xs text-slate-400 mt-1">Personal Growth System</p>
+</div>
+<nav class="flex-1 overflow-y-auto p-4 space-y-2">
+<button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors bg-blue-50 text-blue-600 font-medium" id="nav-planning" onclick="app.switchTab('planning')">
+<i class="fa-regular fa-calendar-check w-5"></i>
+                规划模块
+            </button>
+<button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-purple-600 transition-colors" id="nav-learning" onclick="app.switchTab('learning')">
+<i class="fa-solid fa-graduation-cap w-5"></i>
+                学习模块
+            </button>
+<button class="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors" id="nav-settings" onclick="app.switchTab('settings')">
+<i class="fa-solid fa-gear w-5"></i>
+                配置中心
+            </button>
+</nav>
+<div class="p-4 border-t border-slate-100">
+<button class="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs text-slate-500 hover:text-slate-800 border border-slate-200 rounded hover:bg-slate-50 transition" onclick="app.showDeployGuide()">
+<i class="fa-solid fa-cloud-arrow-up"></i> Vercel 部署指南
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full relative overflow-hidden">
+<!-- Header -->
+<header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-8 shadow-sm z-10">
+<h2 class="text-lg font-semibold text-slate-700" id="page-title">规划概览</h2>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 text-xs px-3 py-1 rounded-full bg-red-50 text-red-600 border border-red-100" id="connection-status">
+<span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    未连接 Notion
+                </div>
+<button class="p-2 text-slate-400 hover:text-blue-600 transition" onclick="app.refreshData()" title="刷新数据">
+<i class="fa-solid fa-rotate-right"></i>
+</button>
+</div>
+</header>
+<!-- Content Container -->
+<div class="flex-1 overflow-y-auto p-8 relative" id="content-area">
+<!-- Dynamic Content Injected Here -->
+</div>
+</main>
+<!-- Modals -->
+<!-- 1. Add Item Modal -->
+<div class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm" id="modal-add">
+<div class="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all scale-100">
+<div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+<h3 class="font-bold text-slate-800" id="modal-title">添加新条目</h3>
+<button class="text-slate-400 hover:text-slate-600" onclick="app.closeModal('modal-add')">
+<i class="fa-solid fa-xmark text-xl"></i>
+</button>
+</div>
+<div class="p-6">
+<form class="space-y-4" id="add-form">
+<!-- Dynamic Fields -->
+<div id="modal-fields"></div>
+<div class="pt-4 flex justify-end gap-3">
+<button class="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50" onclick="app.closeModal('modal-add')" type="button">取消</button>
+<button class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 shadow-sm flex items-center gap-2" type="submit">
+<span>保存</span>
+</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+<!-- 2. Deploy Guide Modal -->
+<div class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm" id="modal-deploy">
+<div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
+<div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+<h3 class="font-bold text-slate-800">Vercel 部署指南</h3>
+<button class="text-slate-400 hover:text-slate-600" onclick="app.closeModal('modal-deploy')">
+<i class="fa-solid fa-xmark text-xl"></i>
+</button>
+</div>
+<div class="p-6 overflow-y-auto prose prose-sm text-slate-600">
+<p>本网页是一个纯静态 HTML 文件，可以直接部署到 Vercel 实现公网访问。</p>
+<h4 class="text-slate-800 font-bold mt-4">步骤 1: 准备代码</h4>
+<p>将本文件保存为 <code>index.html</code>。</p>
+<h4 class="text-slate-800 font-bold mt-4">步骤 2: 上传到 Vercel</h4>
+<ol class="list-decimal pl-5 space-y-2">
+<li>登录 <a class="text-blue-600" href="https://vercel.com" target="_blank">Vercel</a>。</li>
+<li>点击 "Add New..." -&gt; "Project"。</li>
+<li>如果你有 GitHub 仓库，可以直接导入；或者直接将包含 <code>index.html</code> 的文件夹拖拽到 Vercel 的 Dashboard 中（如果使用 CLI）。</li>
+<li>最简单的方法：安装 Vercel CLI (<code>npm i -g vercel</code>)，在文件所在目录运行 <code>vercel</code>，按回车确认即可。</li>
+</ol>
+<h4 class="text-slate-800 font-bold mt-4">关于数据安全</h4>
+<div class="bg-yellow-50 border border-yellow-200 p-3 rounded text-yellow-800 text-xs">
+<strong>注意：</strong> 本应用是纯前端应用，API Key 存储在浏览器的 LocalStorage 中。这意味着：
+                    <ul class="list-disc pl-4 mt-1">
+<li>不要在公共电脑上使用。</li>
+<li>如果你将代码开源，<strong>不要</strong>在代码中硬编码 API Key。</li>
+<li>每次在新浏览器打开，都需要重新在"配置中心"输入 Notion API Key 和数据库 ID。</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<!-- JavaScript Logic -->
+<script>
+        /**
+         * Application State & Constants
+         */
+        const DB_TYPES = {
+            YEAR: 'year',
+            QUARTER: 'quarter',
+            MONTH: 'month',
+            WEEK: 'week',
+            DAY: 'day',
+            LEARNING: 'learning'
+        };
+
+        const STATE = {
+            currentTab: 'planning',
+            planningView: 'day', // year, quarter, month, week, day, history
+            currentDate: new Date(),
+            notionConfig: {
+                apiKey: '',
+                databaseIds: {
+                    year: '',
+                    quarter: '',
+                    month: '',
+                    week: '',
+                    day: '',
+                    learning: ''
+                }
+            },
+            cache: {
+                year: [],
+                quarter: [],
+                month: [],
+                week: [],
+                day: [],
+                learning: []
+            }
+        };
+
+        /**
+         * Notion API Service
+         */
+        const NotionAPI = {
+            client: null,
+
+            init() {
+                if (!STATE.notionConfig.apiKey) return;
+                this.client = axios.create({
+                    baseURL: 'https://api.notion.com/v1/',
+                    headers: {
+                        'Authorization': `Bearer ${STATE.notionConfig.apiKey}`,
+                        'Notion-Version': '2022-06-28',
+                        'Content-Type': 'application/json'
+                    }
+                });
+            },
+
+            async queryDatabase(dbType, filter = {}) {
+                if (!this.client) throw new Error("Notion API 未配置");
+                const dbId = STATE.notionConfig.databaseIds[dbType];
+                if (!dbId) throw new Error(`缺少 ${dbType} 数据库 ID`);
+
+                try {
+                    const response = await this.client.post(`databases/${dbId}/query`, {
+                        filter: Object.keys(filter).length > 0 ? filter : undefined,
+                        sorts: [{ timestamp: "created_time", direction: "descending" }]
+                    });
+                    return response.data.results;
+                } catch (error) {
+                    console.error("Notion API Error:", error);
+                    throw error;
+                }
+            },
+
+            async createPage(dbType, properties) {
+                if (!this.client) throw new Error("Notion API 未配置");
+                const dbId = STATE.notionConfig.databaseIds[dbType];
+                
+                try {
+                    const response = await this.client.post('pages', {
+                        parent: { database_id: dbId },
+                        properties: properties
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.error("Create Error:", error);
+                    throw error;
+                }
+            },
+
+            async updatePage(pageId, properties) {
+                if (!this.client) throw new Error("Notion API 未配置");
+                try {
+                    const response = await this.client.patch(`pages/${pageId}`, {
+                        properties: properties
+                    });
+                    return response.data;
+                } catch (error) {
+                    console.error("Update Error:", error);
+                    throw error;
+                }
+            }
+        };
+
+        /**
+         * UI Controller
+         */
+        const app = {
+            init() {
+                this.loadConfig();
+                this.checkConnection();
+                this.render();
+                
+                // Setup Form Listener
+                document.getElementById('add-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.handleFormSubmit();
+                });
+            },
+
+            loadConfig() {
+                const saved = localStorage.getItem('growth_record_config');
+                if (saved) {
+                    STATE.notionConfig = JSON.parse(saved);
+                    NotionAPI.init();
+                }
+            },
+
+            saveConfig() {
+                localStorage.setItem('growth_record_config', JSON.stringify(STATE.notionConfig));
+                NotionAPI.init();
+                this.checkConnection();
+                this.showToast('配置已保存', 'success');
+            },
+
+            checkConnection() {
+                const el = document.getElementById('connection-status');
+                if (STATE.notionConfig.apiKey && STATE.notionConfig.databaseIds.day) {
+                    el.className = "flex items-center gap-2 text-xs px-3 py-1 rounded-full bg-green-50 text-green-600 border border-green-100";
+                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500"></span> 已连接 Notion`;
+                } else {
+                    el.className = "flex items-center gap-2 text-xs px-3 py-1 rounded-full bg-red-50 text-red-600 border border-red-100";
+                    el.innerHTML = `<span class="w-2 h-2 rounded-full bg-red-500"></span> 未连接 Notion`;
+                }
+            },
+
+            switchTab(tab) {
+                STATE.currentTab = tab;
+                
+                // Update Nav Styles
+                document.querySelectorAll('nav button').forEach(btn => {
+                    btn.className = "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors";
+                });
+                const activeBtn = document.getElementById(`nav-${tab}`);
+                if (activeBtn) {
+                    let colorClass = tab === 'planning' ? 'text-blue-600 bg-blue-50' : (tab === 'learning' ? 'text-purple-600 bg-purple-50' : 'text-slate-800 bg-slate-100');
+                    activeBtn.className = `w-full flex items-center gap-3 px-4 py-3 rounded-lg font-medium transition-colors ${colorClass}`;
+                }
+
+                this.render();
+            },
+
+            async refreshData() {
+                if (!NotionAPI.client) {
+                    this.showToast('请先配置 API Key', 'error');
+                    return;
+                }
+                this.showToast('正在同步数据...', 'info');
+                try {
+                    await this.fetchCurrentViewData();
+                    this.render();
+                    this.showToast('数据同步成功', 'success');
+                } catch (e) {
+                    this.showToast('同步失败: ' + e.message, 'error');
+                }
+            },
+
+            async fetchCurrentViewData() {
+                // Simple fetch strategy: Fetch based on current tab/view
+                if (STATE.currentTab === 'planning') {
+                    // Fetch all for simplicity in this demo, ideally filter by date
+                    if(STATE.planningView === 'day' || STATE.planningView === 'history') {
+                        STATE.cache.day = await NotionAPI.queryDatabase(DB_TYPES.DAY);
+                    }
+                    if(STATE.planningView === 'week') STATE.cache.week = await NotionAPI.queryDatabase(DB_TYPES.WEEK);
+                    if(STATE.planningView === 'month') STATE.cache.month = await NotionAPI.queryDatabase(DB_TYPES.MONTH);
+                    if(STATE.planningView === 'quarter') STATE.cache.quarter = await NotionAPI.queryDatabase(DB_TYPES.QUARTER);
+                    if(STATE.planningView === 'year') STATE.cache.year = await NotionAPI.queryDatabase(DB_TYPES.YEAR);
+                } else if (STATE.currentTab === 'learning') {
+                    STATE.cache.learning = await NotionAPI.queryDatabase(DB_TYPES.LEARNING);
+                }
+            },
+
+            render() {
+                const content = document.getElementById('content-area');
+                const title = document.getElementById('page-title');
+                content.innerHTML = '';
+
+                if (STATE.currentTab === 'planning') {
+                    title.textContent = '规划中心';
+                    this.renderPlanningSubNav(content);
+                    this.renderPlanningContent(content);
+                } else if (STATE.currentTab === 'learning') {
+                    title.textContent = '知识库';
+                    this.renderLearningContent(content);
+                } else if (STATE.currentTab === 'settings') {
+                    title.textContent = '系统配置';
+                    this.renderSettingsContent(content);
+                }
+            },
+
+            // --- Planning Module Rendering ---
+
+            renderPlanningSubNav(container) {
+                const views = [
+                    { id: 'year', label: '年规划' },
+                    { id: 'quarter', label: '季规划' },
+                    { id: 'month', label: '月规划' },
+                    { id: 'week', label: '周规划' },
+                    { id: 'day', label: '日规划' },
+                    { id: 'history', label: '历史回顾' }
+                ];
+
+                const nav = document.createElement('div');
+                nav.className = "flex gap-2 mb-6 overflow-x-auto pb-2";
+                
+                views.forEach(v => {
+                    const btn = document.createElement('button');
+                    const isActive = STATE.planningView === v.id;
+                    btn.className = `px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                        isActive 
+                        ? 'bg-blue-600 text-white shadow-md' 
+                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                    }`;
+                    btn.textContent = v.label;
+                    btn.onclick = () => {
+                        STATE.planningView = v.id;
+                        this.render();
+                    };
+                    nav.appendChild(btn);
+                });
+                container.appendChild(nav);
+            },
+
+            renderPlanningContent(container) {
+                const view = STATE.planningView;
+                const listContainer = document.createElement('div');
+                listContainer.className = "bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden fade-in";
+
+                // Header
+                const header = document.createElement('div');
+                header.className = "p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50";
+                
+                let dateLabel = "";
+                if (view === 'day') dateLabel = new Date().toLocaleDateString();
+                else if (view === 'week') dateLabel = "本周";
+                else if (view === 'month') dateLabel = "本月";
+                else if (view === 'quarter') dateLabel = "本季度";
+                else if (view === 'year') dateLabel = "本年度";
+                else if (view === 'history') dateLabel = "历史日历";
+
+                header.innerHTML = `
+                    <h3 class="font-bold text-slate-700">${dateLabel} 任务列表</h3>
+                    <button onclick="app.openAddModal('${view}')" class="text-sm bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> 新建
+                    </button>
+                `;
+                listContainer.appendChild(header);
+
+                // Body
+                const body = document.createElement('div');
+                body.className = "p-0";
+
+                if (view === 'history') {
+                    this.renderCalendarView(body);
+                } else {
+                    const list = document.createElement('ul');
+                    list.className = "divide-y divide-slate-100";
+                    
+                    // Get data from cache
+                    let data = STATE.cache[view] || [];
+                    
+                    if (data.length === 0) {
+                        list.innerHTML = `<li class="p-8 text-center text-slate-400">暂无数据，请点击刷新或新建</li>`;
+                    } else {
+                        data.forEach(item => {
+                            const li = this.createPlanningListItem(item, view);
+                            list.appendChild(li);
+                        });
+                    }
+                    body.appendChild(list);
+                }
+                
+                listContainer.appendChild(body);
+                container.appendChild(listContainer);
+            },
+
+            createPlanningListItem(item, viewType) {
+                const li = document.createElement('li');
+                li.className = "p-4 flex items-center justify-between hover:bg-slate-50 transition group";
+                
+                // Extract properties based on Notion structure
+                const title = item.properties['任务名称']?.title?.[0]?.plain_text || item.properties['Name']?.title?.[0]?.plain_text || "无标题";
+                const dateProp = item.properties['日期']?.date?.start || item.properties['时间范围']?.date?.start || "";
+                const status = item.properties['状态']?.select?.name || "未开始";
+                const isChecked = item.properties['完成状态']?.checkbox || false;
+
+                // Checkbox logic only for Day view
+                let leftContent = `
+                    <div class="flex items-center gap-4">
+                        ${viewType === 'day' ? `
+                        <label class="custom-checkbox relative flex items-center cursor-pointer">
+                            <input type="checkbox" class="sr-only" ${isChecked ? 'checked' : ''} onchange="app.toggleCheckbox('${item.id}', ${isChecked})">
+                            <div class="w-5 h-5 border-2 border-slate-300 rounded transition-colors flex items-center justify-center">
+                                <svg class="w-3 h-3 text-white hidden pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
+                        </label>
+                        ` : ''}
+                        <div>
+                            <p class="font-medium text-slate-800 ${isChecked ? 'line-through text-slate-400' : ''}">${title}</p>
+                            ${dateProp ? `<p class="text-xs text-slate-400 mt-0.5"><i class="fa-regular fa-clock mr-1"></i>${dateProp}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                let rightContent = `
+                    <div class="flex items-center gap-3">
+                        <span class="px-2 py-1 rounded text-xs font-medium ${this.getStatusColor(status)}">${status}</span>
+                    </div>
+                `;
+
+                li.innerHTML = leftContent + rightContent;
+                return li;
+            },
+
+            getStatusColor(status) {
+                switch(status) {
+                    case '已完成': return 'bg-green-100 text-green-700';
+                    case '进行中': return 'bg-blue-100 text-blue-700';
+                    case '未开始': return 'bg-slate-100 text-slate-600';
+                    default: return 'bg-slate-100 text-slate-600';
+                }
+            },
+
+            renderCalendarView(container) {
+                // Simple Month Calendar
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = now.getMonth();
+                
+                const firstDay = new Date(year, month, 1);
+                const lastDay = new Date(year, month + 1, 0);
+                const daysInMonth = lastDay.getDate();
+                const startingDay = firstDay.getDay(); // 0 is Sunday
+
+                const calendarGrid = document.createElement('div');
+                calendarGrid.className = "grid grid-cols-7 gap-1 p-4 bg-slate-50";
+                
+                // Weekday Headers
+                const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+                weekdays.forEach(d => {
+                    const el = document.createElement('div');
+                    el.className = "text-center text-xs font-bold text-slate-400 py-2";
+                    el.textContent = d;
+                    calendarGrid.appendChild(el);
+                });
+
+                // Empty cells
+                for (let i = 0; i < startingDay; i++) {
+                    const el = document.createElement('div');
+                    el.className = "p-2";
+                    calendarGrid.appendChild(el);
+                }
+
+                // Days
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                    
+                    // Find tasks for this day
+                    const tasks = STATE.cache.day.filter(t => t.properties['日期']?.date?.start === dateStr);
+                    const completedCount = tasks.filter(t => t.properties['完成状态']?.checkbox).length;
+
+                    const cell = document.createElement('div');
+                    cell.className = "calendar-day bg-white border border-slate-200 rounded p-2 cursor-pointer relative flex flex-col justify-between";
+                    cell.onclick = () => {
+                        // Filter logic for history view could go here
+                        this.showToast(`查看 ${dateStr} 的历史记录`, 'info');
+                        // In a real app, this would open a modal with that day's tasks
+                    };
+
+                    cell.innerHTML = `
+                        <span class="text-sm font-semibold text-slate-700">${i}</span>
+                        ${tasks.length > 0 ? `
+                            <div class="mt-1">
+                                <div class="text-xs bg-slate-100 rounded px-1 py-0.5 mb-1 truncate text-slate-600">
+                                    ${tasks.length} 项任务
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-1.5">
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: ${tasks.length ? (completedCount/tasks.length)*100 : 0}%"></div>
+                                </div>
+                            </div>
+                        ` : ''}
+                    `;
+                    calendarGrid.appendChild(cell);
+                }
+
+                container.appendChild(calendarGrid);
+            },
+
+            // --- Learning Module Rendering ---
+
+            renderLearningContent(container) {
+                const layout = document.createElement('div');
+                layout.className = "flex gap-6 h-full";
+
+                // Sidebar: Domains
+                const sidebar = document.createElement('div');
+                sidebar.className = "w-64 flex-shrink-0";
+                sidebar.innerHTML = `
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 sticky top-0">
+                        <h3 class="font-bold text-slate-700 mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-purple-500"></i> 学习领域
+                        </h3>
+                        <div id="domain-list" class="space-y-1">
+                            <!-- Domains injected here -->
+                        </div>
+                    </div>
+                `;
+                layout.appendChild(sidebar);
+
+                // Main Area: Resources
+                const main = document.createElement('div');
+                main.className = "flex-1 bg-white rounded-xl shadow-sm border border-slate-200 p-6 overflow-y-auto";
+                
+                const header = document.createElement('div');
+                header.className = "flex justify-between items-center mb-6";
+                header.innerHTML = `
+                    <h3 class="font-bold text-slate-700 text-lg" id="current-domain-title">全部资源</h3>
+                    <button onclick="app.openAddModal('learning')" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> 添加资源
+                    </button>
+                `;
+                main.appendChild(header);
+
+                const grid = document.createElement('div');
+                grid.id = "resource-grid";
+                grid.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+                
+                // Initial Load
+                const resources = STATE.cache.learning || [];
+                this.renderResourceGrid(grid, resources);
+                
+                main.appendChild(grid);
+                layout.appendChild(main);
+                container.appendChild(layout);
+
+                // Render Domains
+                this.renderDomainList(resources);
+            },
+
+            renderDomainList(resources) {
+                const list = document.getElementById('domain-list');
+                if(!list) return;
+
+                // Extract unique domains
+                const domains = new Set();
+                resources.forEach(r => {
+                    const d = r.properties['领域大类']?.select?.name;
+                    if (d) domains.add(d);
+                });
+
+                let html = `<button onclick="app.filterResources('all')" class="w-full text-left px-3 py-2 rounded text-sm font-medium bg-purple-50 text-purple-700 mb-1">全部领域</button>`;
+                
+                domains.forEach(d => {
+                    html += `<button onclick="app.filterResources('${d}')" class="w-full text-left px-3 py-2 rounded text-sm text-slate-600 hover:bg-slate-50 mb-1 transition">${d}</button>`;
+                });
+                
+                list.innerHTML = html;
+            },
+
+            renderResourceGrid(container, resources) {
+                container.innerHTML = "";
+                if (resources.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center text-slate-400 py-10">暂无学习资源</div>`;
+                    return;
+                }
+
+                resources.forEach(item => {
+                    const title = item.properties['资源名称']?.title?.[0]?.plain_text || "无标题";
+                    const type = item.properties['资源类型']?.select?.name || "未知";
+                    const url = item.properties['资源链接']?.url;
+                    const tags = item.properties['小类标签']?.multi_select || [];
+                    
+                    const card = document.createElement('div');
+                    card.className = "border border-slate-200 rounded-lg p-4 hover:shadow-md transition bg-slate-50/50 flex flex-col h-full";
+                    
+                    let icon = "fa-file";
+                    if (type === '网址') icon = "fa-link";
+                    if (type === '视频') icon = "fa-video";
+                    if (type === '图书') icon = "fa-book";
+
+                    let tagHtml = tags.map(t => `<span class="text-xs bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">${t.name}</span>`).join('');
+
+                    card.innerHTML = `
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                                <i class="fa-solid ${icon}"></i>
+                            </div>
+                            <span class="text-xs font-bold text-slate-400 uppercase">${type}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-800 mb-2 line-clamp-2">${title}</h4>
+                        <div class="flex flex-wrap gap-1 mb-4 mt-auto">
+                            ${tagHtml}
+                        </div>
+                        ${url ? `<a href="${url}" target="_blank" class="block w-full text-center py-2 border border-purple-200 text-purple-600 rounded hover:bg-purple-50 text-sm transition">访问资源</a>` : ''}
+                    `;
+                    container.appendChild(card);
+                });
+            },
+
+            filterResources(domain) {
+                const title = document.getElementById('current-domain-title');
+                title.textContent = domain === 'all' ? '全部资源' : domain;
+
+                let filtered = STATE.cache.learning;
+                if (domain !== 'all') {
+                    filtered = STATE.cache.learning.filter(r => r.properties['领域大类']?.select?.name === domain);
+                }
+                
+                // Update Grid
+                const grid = document.getElementById('resource-grid');
+                this.renderResourceGrid(grid, filtered);
+            },
+
+            // --- Settings Module Rendering ---
+
+            renderSettingsContent(container) {
+                const wrapper = document.createElement('div');
+                wrapper.className = "max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-slate-200 p-8 fade-in";
+                
+                wrapper.innerHTML = `
+                    <h3 class="text-xl font-bold text-slate-800 mb-6 border-b pb-4">Notion API 配置</h3>
+                    
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-2">API Key (Integration Token)</label>
+                            <input type="password" id="input-api-key" class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" placeholder="secret_..." value="${STATE.notionConfig.apiKey}">
+                            <p class="text-xs text-slate-400 mt-1">在 Notion -> My Integrations 创建集成后获取。</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">年度规划 DB ID</label>
+                                <input type="text" id="db-year" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm" value="${STATE.notionConfig.databaseIds.year}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">季度规划 DB ID</label>
+                                <input type="text" id="db-quarter" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm" value="${STATE.notionConfig.databaseIds.quarter}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">月度规划 DB ID</label>
+                                <input type="text" id="db-month" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm" value="${STATE.notionConfig.databaseIds.month}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">周度规划 DB ID</label>
+                                <input type="text" id="db-week" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm" value="${STATE.notionConfig.databaseIds.week}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">日度规划 DB ID</label>
+                                <input type="text" id="db-day" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm" value="${STATE.notionConfig.databaseIds.day}">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">学习资料 DB ID</label>
+                                <input type="text" id="db-learning" class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm" value="${STATE.notionConfig.databaseIds.learning}">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t">
+                            <button onclick="app.saveSettingsFromUI()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200">
+                                保存配置
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(wrapper);
+            },
+
+            saveSettingsFromUI() {
+                STATE.notionConfig.apiKey = document.getElementById('input-api-key').value;
+                STATE.notionConfig.databaseIds.year = document.getElementById('db-year').value;
+                STATE.notionConfig.databaseIds.quarter = document.getElementById('db-quarter').value;
+                STATE.notionConfig.databaseIds.month = document.getElementById('db-month').value;
+                STATE.notionConfig.databaseIds.week = document.getElementById('db-week').value;
+                STATE.notionConfig.databaseIds.day = document.getElementById('db-day').value;
+                STATE.notionConfig.databaseIds.learning = document.getElementById('db-learning').value;
+                
+                this.saveConfig();
+            },
+
+            // --- Interaction Logic ---
+
+            async toggleCheckbox(pageId, currentStatus) {
+                try {
+                    await NotionAPI.updatePage(pageId, {
+                        '完成状态': { 'checkbox': !currentStatus }
+                    });
+                    // Optimistic UI update handled by re-render or direct DOM manipulation
+                    // Here we just re-fetch to be safe
+                    await this.fetchCurrentViewData();
+                    this.render();
+                } catch (e) {
+                    this.showToast('更新失败', 'error');
+                }
+            },
+
+            openAddModal(type) {
+                if (!NotionAPI.client) {
+                    this.showToast('请先配置 Notion API', 'error');
+                    this.switchTab('settings');
+                    return;
+                }
+
+                const modal = document.getElementById('modal-add');
+                const title = document.getElementById('modal-title');
+                const fields = document.getElementById('modal-fields');
+                
+                title.textContent = type === 'learning' ? '添加学习资源' : '添加规划任务';
+                fields.innerHTML = '';
+                modal.dataset.type = type;
+
+                if (type === 'learning') {
+                    fields.innerHTML = `
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">资源名称</label>
+                            <input type="text" name="title" required class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">领域大类</label>
+                            <input type="text" name="domain" list="domain-suggestions" class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none">
+                            <datalist id="domain-suggestions">
+                                <option value="编程开发">
+                                <option value="设计">
+                                <option value="语言学习">
+                                <option value="投资理财">
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">资源类型</label>
+                            <select name="type" class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none">
+                                <option value="网址">网址</option>
+                                <option value="图书">图书</option>
+                                <option value="视频">视频</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">资源链接 (URL)</label>
+                            <input type="url" name="url" class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-purple-500 outline-none">
+                        </div>
+                    `;
+                } else {
+                    // Generic Planning Task
+                    const today = new Date().toISOString().split('T')[0];
+                    fields.innerHTML = `
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">任务名称</label>
+                            <input type="text" name="title" required class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">日期</label>
+                            <input type="date" name="date" value="${today}" class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">状态</label>
+                            <select name="status" class="w-full border border-slate-300 rounded px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none">
+                                <option value="未开始">未开始</option>
+                                <option value="进行中">进行中</option>
+                                <option value="已完成">已完成</option>
+                            </select>
+                        </div>
+                    `;
+                }
+
+                modal.classList.remove('hidden');
+            },
+
+            closeModal(id) {
+                document.getElementById(id).classList.add('hidden');
+            },
+
+            showDeployGuide() {
+                document.getElementById('modal-deploy').classList.remove('hidden');
+            },
+
+            async handleFormSubmit() {
+                const modal = document.getElementById('modal-add');
+                const type = modal.dataset.type;
+                const form = document.getElementById('add-form');
+                const formData = new FormData(form);
+                
+                let properties = {};
+
+                if (type === 'learning') {
+                    properties = {
+                        '资源名称': { 'title': [{ 'text': { 'content': formData.get('title') } }] },
+                        '领域大类': { 'select': { 'name': formData.get('domain') || '未分类' } },
+                        '资源类型': { 'select': { 'name': formData.get('type') } },
+                        '资源链接': { 'url': formData.get('url') }
+                    };
+                } else {
+                    properties = {
+                        '任务名称': { 'title': [{ 'text': { 'content': formData.get('title') } }] },
+                        '日期': { 'date': { 'start': formData.get('date') } },
+                        '状态': { 'select': { 'name': formData.get('status') } }
+                    };
+                }
+
+                try {
+                    await NotionAPI.createPage(type, properties);
+                    this.showToast('创建成功', 'success');
+                    this.closeModal('modal-add');
+                    await this.fetchCurrentViewData();
+                    this.render();
+                } catch (e) {
+                    this.showToast('创建失败: ' + e.message, 'error');
+                }
+            },
+
+            showToast(message, type = 'info') {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                let icon = 'fa-info-circle';
+                if (type === 'success') icon = 'fa-check-circle';
+                if (type === 'error') icon = 'fa-exclamation-circle';
+
+                toast.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid ${icon} text-lg"></i>
+                        <span class="font-medium text-slate-700">${message}</span>
+                    </div>
+                `;
+                
+                container.appendChild(toast);
+                
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(100%)';
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+
+    </script>
+</body>
+</html>
